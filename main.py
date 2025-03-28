@@ -1,12 +1,16 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from utils.split_string import split_string
+from typing import List
+from .utils.semanticsplitter import split_text_semantically
 from utils.embeddings import make_embeddings
 from utils.uproot import get_relevant_chunks
-from utils import memory
 import numpy as np
 
 app = FastAPI()
+
+
+app.state.stored_chunks: List[str] = []
+app.state.stored_embeddings: np.ndarray = np.array([])
 
 class ArticleInput(BaseModel):
     article: str
@@ -14,35 +18,40 @@ class ArticleInput(BaseModel):
 class QuestionInput(BaseModel):
     question: str
 
-@app.post("/upload/")
-def upload_article(data: ArticleInput):
-    chunks = split_string(data.article)
+class UploadResponse(BaseModel):
+    message: str
+    num_chunks: int
 
+class ChatResponse(BaseModel):
+    response: str
 
-    embeddings = make_embeddings(chunks)
+@app.post("/upsert", response_model=UploadResponse)
+def upsert_article(data: ArticleInput) -> UploadResponse:
+    chunks: List[str] = split_text_semantically(data.article)
+    embeddings: np.ndarray = make_embeddings(chunks)
 
-    memory.stored_chunks = chunks
-    memory.stored_embeddings = embeddings
+    app.state.stored_chunks = chunks
+    app.state.stored_embeddings = embeddings
 
-    return {"message": "Article uploaded and embedded successfully.", "num_chunks": len(chunks)}
+    return UploadResponse(message="Article upserted and embedded successfully.", num_chunks=len(chunks))
 
-@app.post("/chat/")
-def chat_with_article(data: QuestionInput):
-    if not memory.stored_embeddings:
-        return {"error": "No article uploaded yet. Please upload an article first."}
-
+@app.post("/chat", response_model=ChatResponse)
+def chat_with_article(data: QuestionInput) -> ChatResponse:
+    if app.state.stored_embeddings is None or len(app.state.stored_embeddings) == 0:
+        return ChatResponse(response="No article uploaded yet. Please upsert an article first.")
 
     question_embedding = make_embeddings([data.question])[0]
 
-    top_chunks = get_relevant_chunks(
+    top_chunks: List[str] = get_relevant_chunks(
         query_vec=np.array([question_embedding]),
-        doc_embeddings=memory.stored_embeddings,
-        doc_chunks=memory.stored_chunks,
+        doc_embeddings=app.state.stored_embeddings,
+        doc_chunks=app.state.stored_chunks,
         k=3
     )
 
+    context: str = "\n\n".join(top_chunks)
+    
 
-    context = "\n\n".join(top_chunks)
     fake_answer = f"Based on the article, here's what I found:\n\n{context}"
 
-    return {"response": fake_answer}
+    return ChatResponse(response=fake_answer)
