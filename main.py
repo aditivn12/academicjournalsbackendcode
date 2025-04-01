@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
-from .utils.semanticsplitter import split_text_semantically
+from utils.semanticsplitter import split_text_semantically
 from utils.embeddings import make_embeddings
 from utils.uproot import get_relevant_chunks
 import numpy as np
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
@@ -25,15 +26,23 @@ class UploadResponse(BaseModel):
 class ChatResponse(BaseModel):
     response: str
 
+@app.get("/")
+def root():
+    return {"message": "Welcome to the Academic Article Chatbot API!"}
+
 @app.post("/upsert", response_model=UploadResponse)
 def upsert_article(data: ArticleInput) -> UploadResponse:
+    print("Received article:", data.article)
     chunks: List[str] = split_text_semantically(data.article)
+    print("Chunks created:", chunks)
     embeddings: np.ndarray = make_embeddings(chunks)
+    print("Embeddings shape:", embeddings.shape)
 
     app.state.stored_chunks = chunks
     app.state.stored_embeddings = embeddings
 
     return UploadResponse(message="Article upserted and embedded successfully.", num_chunks=len(chunks))
+
 
 @app.post("/chat", response_model=ChatResponse)
 def chat_with_article(data: QuestionInput) -> ChatResponse:
@@ -55,3 +64,13 @@ def chat_with_article(data: QuestionInput) -> ChatResponse:
     fake_answer = f"Based on the article, here's what I found:\n\n{context}"
 
     return ChatResponse(response=fake_answer)
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
