@@ -15,9 +15,7 @@ from utils.embeddings import make_embeddings
 from utils.uproot import get_relevant_chunks
 
 
-load_dotenv()
-nltk.download('punkt')
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
 
 app = FastAPI()
 
