@@ -88,7 +88,7 @@ def chat_with_article(data: QuestionInput) -> ChatResponse:
         context = "\n\n".join(top_chunks)
 
         response = client.chat.completions.create(
-            model="gpt-3.5",
+            model="gpt-4o",
             messages=[
                 {
                     "role": "user",
