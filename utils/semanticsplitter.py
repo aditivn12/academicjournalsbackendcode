@@ -22,5 +22,5 @@ def split_text_semantically(text: str, max_words: int = 100) -> list[str]:
     if current_chunk:
         chunks.append(' '.join(current_chunk))
 
-    print(f"📚 Article split into {len(chunks)} semantic chunks.")
+    print(f"Article split into {len(chunks)} semantic chunks.")
     return chunks

@@ -5,7 +5,6 @@ import os
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def make_embeddings(chunks: list[str]) -> np.ndarray:
-    """Create embeddings using OpenAI's text-embedding-ada-002 model"""
     embeddings = []
     
 
