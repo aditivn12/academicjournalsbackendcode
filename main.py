@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
-import nltk
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -11,8 +10,7 @@ from openai import OpenAI
 load_dotenv()
 client = OpenAI()
 
-
-nltk.download('punkt')
+app = FastAPI()
 
 
 from utils.semanticsplitter import split_text_semantically
@@ -21,7 +19,6 @@ from utils.pinecone_ops import upsert_embeddings, query_similar_chunks
 
 
 
-app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -64,7 +61,7 @@ def upsert_article(data: ArticleInput) -> UploadResponse:
 @app.post("/chat", response_model=ChatResponse)
 def chat_with_article(data: QuestionInput) -> ChatResponse:
     try:
-        print("📩 Incoming question:", data.question)
+        print("Incoming question:", data.question)
         question_embedding = make_embeddings([data.question])[0]
         top_chunks = query_similar_chunks(question_embedding, top_k=3)
         if not top_chunks:
