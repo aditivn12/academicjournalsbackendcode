@@ -1,24 +1,16 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List
 from fastapi.middleware.cors import CORSMiddleware
-import numpy as np
 from dotenv import load_dotenv
 from openai import OpenAI
-
+from utils.semanticsplitter import split_text_semantically
+from utils.embeddings import make_embeddings
+from utils.pinecone_ops import upsert_embeddings, query_similar_chunks
 
 load_dotenv()
 client = OpenAI()
 
 app = FastAPI()
-
-
-from utils.semanticsplitter import split_text_semantically
-from utils.embeddings import make_embeddings
-from utils.pinecone_ops import upsert_embeddings, query_similar_chunks
-
-
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -67,8 +59,6 @@ def chat_with_article(data: QuestionInput) -> ChatResponse:
         if not top_chunks:
             return ChatResponse(response="No relevant information found. Please make sure you've uploaded an article first.")
         context = "\n\n".join(top_chunks)
-        
-
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -78,10 +68,8 @@ def chat_with_article(data: QuestionInput) -> ChatResponse:
                 }
             ]
         )
-
         answer = response.choices[0].message.content.strip()
         return ChatResponse(response=answer)
-
     except Exception as e:
         import traceback
         print("Error in /chat:", e)
