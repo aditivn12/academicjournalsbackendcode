@@ -42,16 +42,10 @@ def root():
 def upsert_article(data: ArticleInput) -> UploadResponse:
     try:
         chunks = split_text_semantically(data.article)
-
         embeddings = make_embeddings(chunks)
-
         num_chunks = upsert_embeddings(chunks, embeddings)
-
-
         summary_prompt = f"Please provide a concise TL;DR summary of the following academic article:\n\n{data.article}"
-
         response = client.chat.completions.create(
-
             model="gpt-4o",
             messages=[
                 {
@@ -64,15 +58,12 @@ def upsert_article(data: ArticleInput) -> UploadResponse:
 
         return UploadResponse(
             message="Article upserted and embedded successfully in Pinecone.",
-
             num_chunks=num_chunks,
-
             summary=summary
         )
+    
     except Exception as e:
-
         print("Error in /upsert:", e)
-
         raise HTTPException(status_code=500, detail=f"Failed to process article: {str(e)}")
     
 
@@ -82,19 +73,12 @@ def chat_with_article(data: QuestionInput) -> ChatResponse:
     try:
 
         print("Incoming question:", data.question)
-
         question_embedding = make_embeddings([data.question])[0]
-
         top_chunks = query_similar_chunks(question_embedding, top_k=3)
-
         if not top_chunks:
-
             return ChatResponse(response="No relevant information found. Please make sure you've uploaded an article first.")
-        
         context = "\n\n".join(top_chunks)
-
         response = client.chat.completions.create(
-
             model="gpt-4o",
             messages=[
                 {
@@ -105,11 +89,8 @@ def chat_with_article(data: QuestionInput) -> ChatResponse:
         )
 
         answer = response.choices[0].message.content.strip()
-
         return ChatResponse(response=answer)
     
     except Exception as e:
-
         print("Error in /chat:", e)
-
         return ChatResponse(response=f"Sorry, something went wrong during processing: {str(e)}")
